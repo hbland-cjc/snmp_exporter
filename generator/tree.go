@@ -358,7 +358,7 @@ func generateConfigModule(cfg *ModuleConfig, node *Node, nameToNode map[string]*
 			}
 
 			metric := &config.Metric{
-				Name:       sanitizeLabelName(n.Label),
+				Name:       metricName(n),
 				Oid:        n.Oid,
 				Type:       t,
 				Help:       n.Description + " - " + n.Oid,
@@ -367,7 +367,7 @@ func generateConfigModule(cfg *ModuleConfig, node *Node, nameToNode map[string]*
 				EnumValues: n.EnumValues,
 			}
 
-			if cfg.Overrides[metric.Name].Ignore {
+			if params, ok := metricOverrideForNode(cfg.Overrides, n, metric.Name); ok && params.Ignore {
 				return // Ignored metric.
 			}
 
@@ -549,7 +549,7 @@ func generateConfigModule(cfg *ModuleConfig, node *Node, nameToNode map[string]*
 	// Apply module config overrides to their corresponding metrics.
 	for name, params := range cfg.Overrides {
 		for _, metric := range out.Metrics {
-			if name != metric.Name && name != metric.Oid {
+			if name != metric.Name && name != metric.Oid && !matchesUnprefixedMetricName(name, metric, nameToNode) {
 				continue
 			}
 			metric.RegexpExtracts = params.RegexpExtracts
@@ -610,6 +610,30 @@ func generateConfigModule(cfg *ModuleConfig, node *Node, nameToNode map[string]*
 }
 
 var invalidLabelCharRE = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+
+func metricName(n *Node) string {
+	name := sanitizeLabelName(n.Label)
+	if n.Module == "" {
+		return name
+	}
+	return sanitizeLabelName(n.Module) + "_" + name
+}
+
+func metricOverrideForNode(overrides map[string]MetricOverrides, n *Node, prefixedName string) (MetricOverrides, bool) {
+	if params, ok := overrides[prefixedName]; ok {
+		return params, true
+	}
+	params, ok := overrides[sanitizeLabelName(n.Label)]
+	return params, ok
+}
+
+func matchesUnprefixedMetricName(name string, metric *config.Metric, nameToNode map[string]*Node) bool {
+	n, ok := nameToNode[metric.Oid]
+	if !ok {
+		return false
+	}
+	return name == sanitizeLabelName(n.Label)
+}
 
 func sanitizeLabelName(name string) string {
 	return invalidLabelCharRE.ReplaceAllString(name, "_")

@@ -273,6 +273,47 @@ func TestGenerateConfigModule(t *testing.T) {
 				},
 			},
 		},
+		// Metric names are prefixed with the MIB module name.
+		{
+			node: &Node{Oid: "1", Module: "IF-MIB", Access: "ACCESS_READONLY", Type: "INTEGER", Label: "root"},
+			cfg: &ModuleConfig{
+				Walk: []string{"root"},
+			},
+			out: &config.Module{
+				Get: []string{"1.0"},
+				Metrics: []*config.Metric{
+					{
+						Name: "IF_MIB_root",
+						Oid:  "1",
+						Type: "gauge",
+						Help: " - 1",
+					},
+				},
+			},
+		},
+		// Unprefixed override keys still apply to prefixed metric names.
+		{
+			node: &Node{Oid: "1", Module: "IF-MIB", Access: "ACCESS_READONLY", Type: "INTEGER", Label: "root"},
+			cfg: &ModuleConfig{
+				Walk: []string{"root"},
+				Overrides: map[string]MetricOverrides{
+					"root": {
+						Help: "help override",
+					},
+				},
+			},
+			out: &config.Module{
+				Get: []string{"1.0"},
+				Metrics: []*config.Metric{
+					{
+						Name: "IF_MIB_root",
+						Oid:  "1",
+						Type: "gauge",
+						Help: "help override",
+					},
+				},
+			},
+		},
 		// Simple walk.
 		{
 			node: &Node{
