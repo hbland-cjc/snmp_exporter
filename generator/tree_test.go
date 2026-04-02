@@ -283,7 +283,7 @@ func TestGenerateConfigModule(t *testing.T) {
 				Get: []string{"1.0"},
 				Metrics: []*config.Metric{
 					{
-						Name: "IF_MIB_root",
+						Name: "if_mib_root",
 						Oid:  "1",
 						Type: "gauge",
 						Help: " - 1",
@@ -306,7 +306,7 @@ func TestGenerateConfigModule(t *testing.T) {
 				Get: []string{"1.0"},
 				Metrics: []*config.Metric{
 					{
-						Name: "IF_MIB_root",
+						Name: "if_mib_root",
 						Oid:  "1",
 						Type: "gauge",
 						Help: "help override",

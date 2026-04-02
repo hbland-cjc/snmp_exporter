@@ -616,15 +616,25 @@ func metricName(n *Node) string {
 	if n.Module == "" {
 		return name
 	}
-	return sanitizeLabelName(n.Module) + "_" + name
+	prefix := strings.ReplaceAll(strings.ToLower(sanitizeLabelName(n.Module)), "_", "")
+	return prefix + "_" + name
 }
 
 func metricOverrideForNode(overrides map[string]MetricOverrides, n *Node, prefixedName string) (MetricOverrides, bool) {
 	if params, ok := overrides[prefixedName]; ok {
 		return params, true
 	}
-	params, ok := overrides[sanitizeLabelName(n.Label)]
-	return params, ok
+	if params, ok := overrides[strings.ToLower(prefixedName)]; ok {
+		return params, true
+	}
+	unprefixedName := sanitizeLabelName(n.Label)
+	if params, ok := overrides[unprefixedName]; ok {
+		return params, true
+	}
+	if params, ok := overrides[strings.ToLower(unprefixedName)]; ok {
+		return params, true
+	}
+	return MetricOverrides{}, false
 }
 
 func matchesUnprefixedMetricName(name string, metric *config.Metric, nameToNode map[string]*Node) bool {
@@ -632,7 +642,8 @@ func matchesUnprefixedMetricName(name string, metric *config.Metric, nameToNode 
 	if !ok {
 		return false
 	}
-	return name == sanitizeLabelName(n.Label)
+	unprefixedName := sanitizeLabelName(n.Label)
+	return name == unprefixedName || name == strings.ToLower(unprefixedName)
 }
 
 func sanitizeLabelName(name string) string {
